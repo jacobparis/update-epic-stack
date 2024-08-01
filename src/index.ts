@@ -76,7 +76,7 @@ if (!initialHash) {
 }
 
 if (command === "pull") {
-  pull({
+  await pull({
     projectRoot,
     targetDir,
     initialHash,
@@ -84,7 +84,7 @@ if (command === "pull") {
     dryRun,
   })
 } else {
-  apply({
+  await apply({
     projectRoot,
     targetDir,
     initialHash,

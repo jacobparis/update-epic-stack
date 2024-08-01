@@ -119,13 +119,15 @@ export async function pull({
       `git log --reverse --pretty=format:"%H|%s" ${startHash}..${endHash}`,
       repoPath
     )
-    return output.split("\n").map((line) => {
-      const [sha, message] = line.split("|")
+    return output
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        const [sha, message] = line.split("|")
+        if (!sha || !message) throw new Error("Invalid git log output")
 
-      if (!sha || !message) throw new Error("Invalid git log output")
-
-      return { sha, message }
-    })
+        return { sha, message }
+      })
   }
 
   async function getChangedFiles(repoPath: string, sha: string) {
