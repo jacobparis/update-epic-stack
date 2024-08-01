@@ -1,0 +1,7 @@
+{
+  // My code _doesn't_ run in the DOM (for instance, in Node.js):
+  "extends": "@total-typescript/tsconfig/bundler/no-dom/library",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": false
+  }
+}
