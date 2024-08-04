@@ -1,5 +1,11 @@
 import { exec } from "child_process"
-import { existsSync, readdirSync, readFileSync, unlinkSync } from "fs"
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+} from "fs"
 import { join, resolve } from "path"
 import readline from "readline"
 import chalk from "chalk"
@@ -19,56 +25,19 @@ export async function apply({
     output: process.stdout,
   })
 
-  const applyPatches = async () => {
-    const patches = readdirSync(PATCH_DIR)
-      .filter((file) => file.endsWith(".patch"))
-      .sort()
+  const patches = readdirSync(PATCH_DIR)
+    .filter((file) => file.endsWith(".patch"))
+    .sort()
 
-    let foundInitialHash = false
-    let lastCommitChunk: string | undefined
+  for (let i = 0; i < patches.length; i++) {
+    const patch = patches[i]
+    const patchPath = join(PATCH_DIR, patch)
 
-    if (initialHash) {
-      console.log(`Skipping patches before ${initialHash.slice(0, 7)}`)
-    }
-    for (let i = 0; i < patches.length; i++) {
-      if (i === patches.length - 1 && !foundInitialHash) {
-        console.log("Applying all patches")
-        i = 0
-        foundInitialHash = true
-        continue
-      }
-
-      const patch = patches[i]
-
-      const patchPath = join(PATCH_DIR, patch)
-
-      const thisCommitChunk = patch.match(/\.([a-f0-9]{7})\.patch$/)?.[1]
-
-      if (initialHash && !foundInitialHash) {
-        if (initialHash.startsWith(thisCommitChunk!)) {
-          foundInitialHash = true
-        }
-        continue
-      }
-      if (thisCommitChunk !== lastCommitChunk) {
-        lastCommitChunk = thisCommitChunk
-        await new Promise<void>((resolve) =>
-          rl.question(
-            `Apply patches for commit ${thisCommitChunk}? [ENTER]`,
-            () => resolve()
-          )
-        )
-      }
-      await applyPatch(patchPath)
-    }
-
-    rl.close()
+    await applyPatch(patchPath)
+    renameSync(patchPath, patchPath.replace(".patch", ".patch.applied"))
   }
 
-  applyPatches().catch((error) => {
-    console.error("Error applying patches:", error)
-    rl.close()
-  })
+  rl.close()
 
   async function applyPatch(patch: string) {
     const applyPatchCommand = `patch -F10 --batch  --ignore-whitespace --no-backup-if-mismatch`
@@ -127,7 +96,7 @@ export async function apply({
               formatPatch(
                 readFileSync(join(targetDir, `${targetFile}.rej`), "utf8"),
                 join(targetDir, targetFile ?? "").replace(process.cwd(), "")
-              )
+              ).replace("\t", "  ")
             )
           }
         } else {
@@ -136,7 +105,7 @@ export async function apply({
             formatPatch(
               patchContents,
               join(targetDir, targetFile ?? "").replace(process.cwd(), "")
-            )
+            ).replace("\t", "  ")
           )
         }
 
